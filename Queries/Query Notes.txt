@@ -1,0 +1,154 @@
+this will be hella useful bc i dont understand how this works yet
+
+
+-- Step 1: Insert main genre
+INSERT INTO book_genre (book_id, main_genre_id) VALUES (1, 1);
+SET @book_genre_id = LAST_INSERT_ID();
+
+-- Step 2: Insert sub-genres
+INSERT INTO book_sub_genres (book_genre_id, genre_id) VALUES
+  (@book_genre_id, 5), -- Sci-Fi
+  (@book_genre_id, 6); -- Fantasy
+
+Got it 👍. Since you want **book with id=1** to have **Mystery** as its main genre and **Fantasy + Sci‑Fi** as sub‑genres, here’s how the SQL would look if you’re using the normalized schema I outlined earlier (`books`, `genres`, `book_genre`, `book_sub_genres`):
+
+---
+
+### Step 1: Insert into `book_genre` (main genre)
+```sql
+-- Assume Mystery has id=1 in genres
+INSERT INTO book_genre (book_id, main_genre_id)
+VALUES (1, 1);
+```
+
+This creates the link between book `id=1` and its main genre (`Mystery`).
+
+---
+
+### Step 2: Insert into `book_sub_genres` (sub genres)
+```sql
+-- Assume Fantasy has id=6, Sci-Fi has id=5 in genres
+-- book_genre_id is the ID generated in Step 1
+INSERT INTO book_sub_genres (book_genre_id, genre_id)
+VALUES 
+  (LAST_INSERT_ID(), 6),  -- Fantasy
+  (LAST_INSERT_ID(), 5);  -- Sci-Fi
+```
+
+Here:
+- `LAST_INSERT_ID()` grabs the `book_genre.id` from the previous insert.
+- You then add multiple rows for each sub‑genre.
+
+---
+
+### Alternative (if you kept `sub_genre_ids` as a text field)
+If you didn’t normalize sub‑genres into a separate table, you could store them as a comma‑separated list:
+
+```sql
+INSERT INTO book_genre (book_id, main_genre_id, sub_genre_ids)
+VALUES (1, 1, '6,5');
+```
+
+But the normalized version (`book_sub_genres`) is cleaner and more flexible.
+
+---
+
+👉 Do you want me to also draft the **genre IDs mapping** (Mystery=1, Magic=2, Romance=3, Thriller=4, Sci‑Fi=5, Fantasy=6) so you can directly use them in your queries?
+
+
+Here’s the SQL you can use to insert those genres into your `genres` table. Since you defined the table with fields `id`, `genre`, and `description`, we’ll let `id` auto‑increment and leave `description` blank for now:
+
+```sql
+INSERT INTO genres (genre, description) VALUES
+('Mystery', ''),
+('Magic', ''),
+('Romance', ''),
+('Thriller', ''),
+('Sci-Fi', ''),
+('Fantasy', '');
+```
+
+### Notes:
+- `id` will be automatically generated because it’s an `AUTO_INCREMENT` primary key.
+- You can later update the `description` field with more details about each genre if needed:
+
+```sql
+UPDATE genres
+SET description = 'Stories involving suspense and solving puzzles or crimes'
+WHERE genre = 'Mystery';
+```
+
+Would you like me to also draft some **sample descriptions** for each genre so you can populate them right away instead of leaving them blank?
+
+
+Here's how you can structure your database to support multiple genres per book, with a clear distinction between **main genre** and **sub-genres**, using three tables: `books`, `genres`, and `book_genre`.
+
+---
+
+### 📘 1. `genres` Table
+Stores all possible genres.
+
+```sql
+CREATE TABLE genres (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  genre VARCHAR(100) NOT NULL,
+  description TEXT
+);
+```
+
+---
+
+### 📚 2. `books` Table
+Assuming you already have this, but here's a sample structure:
+
+```sql
+CREATE TABLE books (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255),
+  author VARCHAR(255),
+  description TEXT,
+  rating INT,
+  imageLink TEXT
+);
+```
+
+---
+
+### 🔗 3. `book_genre` Table
+Connects books to genres, allowing multiple genres per book and distinguishing between main and sub-genres.
+
+```sql
+CREATE TABLE book_genre (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  book_id INT NOT NULL,
+  main_genre_id INT,
+  sub_genre_ids TEXT, -- comma-separated genre IDs or use a junction table for normalization
+
+  FOREIGN KEY (book_id) REFERENCES books(id),
+  FOREIGN KEY (main_genre_id) REFERENCES genres(id)
+);
+```
+
+---
+
+### 🧠 Optional: Normalize `sub_genres`
+If you want full normalization (no comma-separated values), create a **junction table** for sub-genres:
+
+```sql
+CREATE TABLE book_sub_genres (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  book_genre_id INT NOT NULL,
+  genre_id INT NOT NULL,
+
+  FOREIGN KEY (book_genre_id) REFERENCES book_genre(id),
+  FOREIGN KEY (genre_id) REFERENCES genres(id)
+);
+```
+
+This way:
+- `book_genre` links each book to its main genre.
+- `book_sub_genres` links each book to multiple sub-genres.
+
+---
+
+Would you like help populating the `genres` table with common genres like fantasy, romance, mystery, etc.?
